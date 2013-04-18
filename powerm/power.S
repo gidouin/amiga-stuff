@@ -7,7 +7,6 @@ screen1=$77000
 >EXTERN"tblsin",tblsin
 >EXTERN"tblcos",tblcos
 ;>EXTERN"skip.pic",skip
-;>EXTERN"power_boot",boot
 ;---------------------
 start:
 
@@ -62,11 +61,9 @@ wait:
 	bne	wait
 	bra	no_right
 right:
-	;move.w	#$6020,boot+$4e
 
 no_right:
 	clr	$dff102
-	;jmp	boot
 	rts
 
 copper_list:
@@ -760,8 +757,6 @@ speed:	dc.w	2
 tblsin:	blk.b	720
 tblcos:	blk.b	720
 skip:	blk.b	240
-boot:	blk.b	1060
-
 
 
 nbs:	dc.w	0

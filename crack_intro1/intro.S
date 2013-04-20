@@ -2,20 +2,51 @@
 ; crack intro (c) ART&SCIENCE / Frederic Gidouin
 ;
 
-screen0=$70000
-screen1=$77000
+music=$4122c
+
+copper_list=$50000
+screen=$58000
+char=$60000
+
+boot=$61000
+tblsin=$7f000
+tblcos=$7f800
+screen0=$62000
+screen1=$72000
 >EXTERN"tblsin",tblsin
 >EXTERN"tblcos",tblcos
-;>EXTERN"skip.pic",skip
+>EXTERN"char8",char
+>EXTERN"rsi.bin",music
+;>EXTERN"power_boot",boot
 ;---------------------
 start:
 
+	move.b	#$87,$bfd100
+	move.l	$4,a6
+	jsr	-$84(a6)
+
+	bsr	aff
+	bsr	init_copper
+	moveq	#0,d0
+	moveq	#0,d1
+	jsr	$4124e
+	clr	pcol
+
+	lea	s_dma(pc),a5
 	lea	$dff000,a6
+	move	$2(a6),(a5)
+	or	#$c000,(a5)+
+	
+	move	$1c(a6),(a5)
+	or	#$c000,(a5)
+
 	move	#$3fff,$96(a6)
 	move	#$7fff,$9a(a6)
 	move	#$83c0,$96(a6)
+	move	#$e008,$9a(a6);clavier seul
 
 	move.l	#$2c812ae1,$8e(a6)
+	move.w	#$3000,$100(a6)
 	clr.l	$108(a6)
 	clr.l	$104(a6)
 	move	#$1,$102(a6)
@@ -24,8 +55,16 @@ start:
 	bsr	set_screen
 	move.l	#copper_list,$80(a6)
 	clr	$88(a6)	
+	clr	$180(a6)
+	move	#$77a,$182(a6)
 	move	#$fff,$184(a6)
 	move	#$bbe,$186(a6)
+
+	clr	$188(a6)
+
+	move	#$77a,$18a(a6)
+	move	#$fff,$18c(a6)
+	move	#$bbe,$18e(a6)
 
 	bsr	clear_screen
 	bsr	wait_blitter
@@ -42,12 +81,13 @@ wait:
 	bsr	wait_blitter
 	bsr	clear_screen
 
-
+	bsr	fondu	
+	jsr	$413e4
+	bsr	chg_col
 	bsr	anim
 	bsr	scroll
 
 	bsr	rotations
-
 	bsr	wait_blitter
 
 	bsr	display_scroll
@@ -61,26 +101,127 @@ wait:
 	bne	wait
 	bra	no_right
 right:
+	move.w	#$6020,boot+$4e
 
 no_right:
-	clr	$dff102
+
+	lea	name_glib(pc),a1
+	lea	$dff000,a4
+	lea	s_dma(pc),a5
+	move.l	$4.w,a6
+
+	move	#$7fff,$96(a4)
+	move	#$7fff,$9a(a4)
+	move	(a5)+,$96(a4)
+	move	(a5),$9a(a4)
+	move.w	#$f,$96(a4)
+
+	moveq	#0,d0
+	jsr	-$228(a6)
+	move.l	d0,a0
+	move.l	$26(a0),$80(a4)
+	move	d0,$88(a4)
+	jmp	-$8a(a6)
+
+s_dma:	dc.w	0
+s_intena:dc.w	0
+name_glib:	dc.b	'graphics.library',0
+	even
+
+init_copper:
+	lea	copper_list,a0
+
+	move.l	#$ea8000,(a0)+
+	move.l	#$e80005,(a0)+
+	move.l	#$e20000,(a0)+
+	move.l	#$e00000,(a0)+
+	move.l	#$e60000,(a0)+
+	move.l	#$e40000,(a0)+
+
+	move.l	#$4037fffe,(a0)+
+	move.l	a0,barrecol
+
+	moveq	#$2a,d1
+ic0:	move.l	#$01800000,(a0)+
+	dbf	d1,ic0
+
+	move.l	#$4107fffe,(a0)+
+	move.l	#$00968100,(a0)+
+	move.l	#$01800000,(a0)+
+
+	move.l	#$ffdffffe,(a0)+
+	move.l	#$100ffffe,(a0)+
+	move.l	#$00960100,(a0)+
+
+	move.l	#$110ffffe,(a0)+
+
+	move.l	a0,barrecol+4
+
+	moveq	#$2a,d1
+ic1:	move.l	#$01800000,(a0)+
+	dbf	d1,ic1
+
+	move.l	#$120ffffe,(a0)+
+	move.l	#$01800224,(a0)+
+
+	move.l	#$fffffffe,(a0)
 	rts
 
-copper_list:
-	dc.l	$e20000,$e00000,$e60000,$e40000,$01002000,$01820777
-	dc.l	$3f0ffffe,$0180088a,$400ffffe,$01800fff
-	dc.l	$410ffffe,$00968100,$01800000
+barrecol:	dc.l	0,0
+colors:
+	dc.w	$fff,$fee,$fdd,$fcc,$fbb,$faa,$f99,$f88,$f77,$f66
+	dc.w	$f55,$f44,$f33,$f22,$f11,$f10,$f20,$f30,$f40,$f50
+	dc.w	$f60,$f70,$f80,$f90,$fa0,$fb0,$fc0,$fd0,$fe0,$ff0
+	dc.w	$ef0,$df0,$cf0,$bf0,$af0,$9f0,$8f0,$7f0,$6f0,$5f0
+	dc.w	$4f0,$3f0,$2f0,$1f0,$0f0,$f1,$f2,$f3,$f4,$f5,$f6
+	dc.w	$f7,$f8,$f9,$fa,$fb,$fc,$fd,$fe,$ff,$1ff,$2ff,$3ff,$4ff
+	dc.w	$5ff,$6ff,$7ff,$8ff,$9ff,$aff,$bff,$cff,$dff,$eff,$fff
 	
-	dc.l	$ffdffffe,$100ffffe,$00960100,$01800fff
-	dc.l	$110ffffe,$0180088a,$120ffffe,$01800008
+e_colors:
+	dc.w	$fff,$fee,$fdd,$fcc,$fbb,$faa,$f99,$f88,$f77,$f66
+	dc.w	$f55,$f44,$f33,$f22,$f11,$f10,$f20,$f30,$f40,$f50
+	dc.w	$f60,$f70,$f80,$f90,$fa0,$fb0,$fc0,$fd0,$fe0,$ff0
+	dc.w	$ef0,$df0,$cf0,$bf0,$af0,$9f0,$8f0,$7f0,$6f0,$5f0
+	dc.w	$4f0,$3f0,$2f0,$1f0,$0f0,$f1,$f2,$f3,$f4,$f5,$f6
+	dc.w	$f7,$f8,$f9,$fa,$fb,$fc,$fd,$fe,$ff,$1ff,$2ff,$3ff,$4ff
+	dc.w	$5ff,$6ff,$7ff,$8ff,$9ff,$aff,$bff,$cff,$dff,$eff,$fff
+	
+ptcol:	dc.l	colors
+wcol:	dc.w	0
 
-	dc.l	$130ffffe
-	dc.l	$00968100,$01001000,$00e2e000,$00e00007
-	dc.l	$01820afa,$180ffffe,$00960100
+chg_col:
+	addq	#1,wcol
+	cmpi	#2,wcol
+	bne	echgc
+	clr	wcol
 
-	dc.l	$fffffffe
+	move.l	ptcol,a0
+	cmpa.l	#e_colors,a0
+	bne.s	chgc0
+	lea	colors-2,a0
+chgc0:
+	lea	2(a0),a0
+	move.l	a0,ptcol
+	
+	move.l	barrecol,a1
+	move.l	barrecol+4,a2
+	lea	$a4(a2),a2
 
-;--------------------------------
+	moveq	#$14,d0
+chgc1:
+	move.w	(a0),2(a1)
+	move.w	(a0),6(a1)
+
+	move	(a0)+,6(a2)
+	move	(a0)+,2(a2)
+
+	addq	#8,a1
+	subq	#8,a2
+	dbf	d0,chgc1
+	move	(a0)+,2(a1)
+echgc:
+	rts
+
 used_screen:	dc.l	screen0
 other_screen:	dc.l	screen1
 
@@ -94,7 +235,7 @@ swap_screens:
 
 set_screen:
 	move.l	used_screen(pc),d0
-	lea	copper_list(pc),a0
+	lea	copper_list+8,a0
 	add.l	#400,d0
 	move	d0,2(a0)
 	swap	d0
@@ -104,10 +245,6 @@ set_screen:
 	move	d0,10(a0)
 	swap	d0
 	move	d0,14(a0)
-	move.l	#skip,d0
-	move	d0,98(a0)
-	swap	d0
-	move	d0,102(a0)
 	rts
 ;---------------------------------
 clear_screen:	
@@ -141,11 +278,6 @@ rotations:
 	lea	tblsin,a2
 	lea	tblcos,a3
 
-	move	za(pc),d0
-	add	d0,d0
-	move	0(a2,d0.w),d2
-	move	0(a3,d0.w),d3
-
 
 	move	ya(pc),d0
 	add	d0,d0
@@ -157,8 +289,10 @@ rotations:
 	move	0(a2,d0.w),a6
 	move	0(a3,d0.w),a7
 
-	move	d2,a2
-	move	d3,a3
+	move	za(pc),d0
+	add	d0,d0
+	move	0(a2,d0.w),a2
+	move	0(a3,d0.w),a3
 
 	move	nbs,d7
 	beq	no_rot
@@ -222,7 +356,7 @@ rot0:
 
 	dbf	d7,rot0
 no_rot:
-	move.l	save_sp,a7
+	move.l	save_sp(pc),a7
 	rts
 
 save_sp:dc.l	0
@@ -245,7 +379,6 @@ an2:
 	move	d1,(a1)+
 	dbf	d0,an0
 	rts
-;------------------------------
 
 xi:	dc.w	0
 yi:	dc.w	0
@@ -717,17 +850,27 @@ adr_text:
 
 text:
 	dc.b	-1,$00,$04,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,10
-	dc.b	"THIS SMALL PIECE OF CODE      "
+	dc.b	"ART AND SCIENCE IS REALLY PROUD TO RELEASE      "
 	dc.b	-1,$00,$00,$00,$00,$00,$03,$1,$2e,$00,$00,$00,$79,6
-	dc.b	"WAS A CRACK INTRO      "
+	dc.b	"POWERMONGER !!!      "
 	dc.b	-1,$00,$00,$00,$00,$00,$00,$01,$25,$00,$0a,$01,$2b,6
-	dc.b	"USED ONLY ONCE     "
+	dc.b	"PROTECTION CHECK REMOVED BY...     "
 	dc.b	-1,$00,$00,$00,$00,$00,$03,$1,$2e,$00,$00,$00,$79,6
-	dc.b	"FOR A GAME RELEASED IN NINETEEN NINTETY     "
+	dc.b	"GOT AND EID     "
+
 	dc.b	-1,$00,$05,$00,$00,$00,$00,$1,$2e,$00,$00,$00,$16,6
-	dc.b	"YES THIS FONT DOES NOT HAVE DIGITS     "
+	dc.b	"ORIGINAL BOUGHT BY J.Y.  AND SUPPLIED BY STARDUST.     "
+	dc.b	-1,$00,$00,$00,$00,$ff,$fc,$00,$00,$00,$00,$00,$00,6
+	dc.b	"HI TO THE FOLLOWING GUYS...     "
+
+	dc.b	-1,$00,$02,$00,$00,$00,$04,$01,$28,$00,$00,$00,$b4,10
+	dc.b	"ALAIN    APOLLON    CHRISTOPHE    FANT TAG    LOOPING"
+	dc.b	"    SLH    STARDUST    PHILIPPE      "
+
 	dc.b	-1,$ff,$fd,$00,$03,$00,$01,$01,$66,$00,$aa,$01,$66,6
-	dc.b	"AND I M TOO LAZY TO CHANGE THAT       ",0
+	dc.b	"THIS INTRO WAS CODED BY GOT AND EID...       "
+	dc.b	-1,$00,$00,$00,$00,$00,$03,$1,$2e,$00,$00,$00,$79,6
+	dc.b	"ENJOY THIS FANTASTIC GAME !!!...                     ",0
 	
 	even 
 
@@ -754,9 +897,102 @@ init_scroll:
 pt_text:dc.l	0
 speed:	dc.w	2
 
-tblsin:	blk.b	720
-tblcos:	blk.b	720
-skip:	blk.b	240
+aff:
+	lea	text_pres(pc),a0
+	lea	screen,a1
+	lea	char,a3
+	moveq	#22,d1
+aff12lign:
+	moveq	#39,d0
+aff19col:
+	moveq	#0,d7
+	move.b	(a0)+,d7
+
+	bsr	aff_car
+	
+	lea	1(a1),a1
+
+	dbf	d0,aff19col
+	lea	320(a1),a1	
+
+	dbf	d1,aff12lign
+	
+	rts
+
+aff_car:
+	lea	tbl_char(pc),a6
+	moveq	#-1,d5
+se:	move.b	(a6)+,d3
+	beq	find
+	addq	#1,d5
+	cmp.b	d7,d3
+	bne.s	se
+find:
+	lea	0(a3),a4
+fadr:
+	lea	0(a4,d5.w),a4
+	lea	0(a1),a5	
+	moveq	#7,d3
+affl:
+	move.b	(a4),(a5)
+	lea	80(a4),a4
+	lea	40(a5),a5
+	dbf	d3,affl
+	rts
+
+tbl_char:dc.b	"0123456789:;<=>?./-',()*+!ABCDEFGHIJKLMNOPQRSTUVWXYZ ",0
+	even
+
+text_pres:
+	dc.b	"----------------------------------------"
+	dc.b	"         P O W E R M O N G E R (FINAL)  "
+	dc.b	"----------------------------------------"
+	dc.b	"                                        "
+	dc.b	"         CRACKED BY GOT AND EID         "
+	dc.b	"          OF THE UNFORGETTABLE          "
+	dc.b	"           -ART AND SCIENCE-            "
+	dc.b	"                                        "
+	dc.b	"                                        "
+	dc.b	" SORRY FOR THIS BORING VECTORSCROLLER..."
+	dc.b	" SOON I SHALL IMPROVE IT !              "
+	dc.b	"                                        "
+	dc.b	"                                        "
+	dc.b	"     SPECIAL GREETINGS ARE GOING TO     "
+	dc.b	"     JEAN-YVES - LOOPING - STARDUST     "
+	dc.b	"                                        "
+	dc.b	"                                        "
+	dc.b	"     PRESS LEFT MOUSEBUTTON FOR GAME    "
+	dc.b	"      AND RIGHT ONE  FOR GAME-INTRO     "
+	dc.b	"                                        "
+	dc.b	"                                        "
+	dc.b	"              HAVE FUN !!!              "
+	dc.b	"                                        "
+
+pcol:	dc.w	0
+wpcol:	dc.w	0
+fondu:
+	addq	#1,wpcol
+	cmpi	#$2,wpcol
+	bmi	fondu0
+	clr	wpcol
+
+	cmpi	#$f,pcol
+	beq	fondu0
+	addq	#1,pcol
+
+	move	pcol,d0
+	move	d0,d1
+	lsr	#1,d0
+	
+	lsl	#4,d0
+	or	d0,d1
+	lsl	#4,d0
+	or	d0,d1
+	move	d1,$dff188
+
+
+fondu0:	rts	
+
 
 
 nbs:	dc.w	0

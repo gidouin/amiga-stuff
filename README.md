@@ -10,6 +10,13 @@ old 68000 amiga stuff I wrote on Amiga (1989+)
   
   Code in action: [http://www.youtube.com/watch?v=VbxlUncLt0c](http://www.youtube.com/watch?v=VbxlUncLt0c "Youtube Video")
  
+* vectorballs
+
+  Several animated objects made from bobs in 3D
+  Code made for a Microtel compo in 1990
+  
+  Code in action: [http://youtu.be/kZGHRnhUTY4](http://youtu.be/kZGHRnhUTY4 "Youtube Video")
+ 
 * crack_intro1
 
   Small crack intro with vector scroll over text
